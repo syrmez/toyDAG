@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import argparse
 
-from src.market_nodes import fetch_day1
+from src.market_nodes import build_kalshi_btc_edge, fetch_day1, fetch_kalshi_btc, kalshi_btc_edge, normalize_funding
 
 NODES = {
     "fetch_day1": fetch_day1,
+    "normalize_funding": normalize_funding,
+    "fetch_kalshi_btc": fetch_kalshi_btc,
+    "build_kalshi_btc_edge": build_kalshi_btc_edge,
+    "kalshi_btc_edge": kalshi_btc_edge,
 }
 
 
