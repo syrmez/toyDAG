@@ -5,15 +5,29 @@ This is a first-pass EDA, not a proven strategy. It uses local orderbook snapsho
 ## Data
 
 - Orderbook rows: 5,520
-- Window-filtered trade rows: 769,440
-- Events: 8 orderbook events, 7 trade events, 24 outcome tickers
-- Missing trade files after windowing: KXWCGAME-26JUN17PORCOD
+- Complete match-window trade rows: 1,121,256
+- Events: 8 matches, 24 outcome tickers
+- Complete trade files fetched for all 8 matches; historical orderbook snapshots remain whatever we captured live.
 - Normalized outputs:
   - `data/processed/kalshi_worldcup_orderbooks_normalized.parquet`
   - `data/processed/kalshi_worldcup_trades_yes_view.parquet`
   - `data/processed/kalshi_worldcup_features.parquet`
 
-`KXWCGAME-26JUN18SUIBIH` had old pre-match prints in the trade file, so trade features use only the orderbook capture window plus two minutes. Cross-outcome sums use 30-second timestamp buckets because the three outcome books are captured sequentially, not at identical microsecond timestamps.
+Some original trade files included old pre-match prints, so I refetched complete trade windows from 15 minutes before kickoff through 15 minutes after full time for every match. Historical orderbook states do not appear to be available from the same API, so incomplete orderbook captures remain partial. Cross-outcome sums use 30-second timestamp buckets because the three outcome books are captured sequentially, not at identical microsecond timestamps.
+
+## Matches covered
+
+| match | result | orderbook rows | orderbook window UTC | trade rows | trade window UTC | orderbook coverage |
+|:--|:--|--:|:--|--:|:--|:--|
+| Iraq vs Norway | Iraq 1-4 Norway | 924 | 06-16 21:32 → 00:06 | 124,192 | 06-16 21:45 → 00:06 | mostly/full |
+| Argentina vs Algeria | Argentina 3-0 Algeria | 1,971 | 06-16 21:33 → 03:00 | 135,564 | 06-17 00:45 → 03:01 | mostly/full |
+| Portugal vs Congo DR | Portugal 1-1 Congo DR | 777 | 06-17 16:52 → 19:01 | 210,634 | 06-17 16:45 → 19:01 | mostly/full |
+| England vs Croatia | England 4-2 Croatia | 228 | 06-17 21:27 → 22:08 | 202,386 | 06-17 19:45 → 22:08 | partial orderbooks |
+| Ghana vs Panama | Ghana 1-0 Panama | 414 | 06-17 23:50 → 01:04 | 125,123 | 06-17 23:45 → 01:05 | mostly/full |
+| Uzbekistan vs Colombia | Uzbekistan 1-3 Colombia | 423 | 06-18 02:50 → 04:06 | 104,995 | 06-18 02:45 → 04:06 | mostly/full |
+| Czechia vs South Africa | Czechia 1-1 South Africa | 402 | 06-18 16:50 → 18:02 | 94,902 | 06-18 16:45 → 18:03 | mostly/full |
+| Switzerland vs Bosnia and Herzegovina | Switzerland 4-1 Bosnia and Herzegovina | 381 | 06-18 19:50 → 20:58 | 123,460 | 06-18 18:45 → 20:59 | partial orderbooks |
+
 
 ## Normalization checks
 
@@ -21,17 +35,18 @@ Direct YES asks matched `1 - NO bid`, and direct NO asks matched `1 - YES bid`; 
 
 ## Trading intensity
 
-| event                  |   total_volume |   total_trades |   peak_1m_volume |
-|:-----------------------|---------------:|---------------:|-----------------:|
-| KXWCGAME-26JUN16ARGDZA |    3.31895e+07 |         207279 | 837425           |
-| KXWCGAME-26JUN16IRQNOR |    2.95116e+07 |         129793 |      1.06386e+06 |
-| KXWCGAME-26JUN17UZBCOL |    2.52026e+07 |         100409 |      1.40051e+06 |
-| KXWCGAME-26JUN17GHAPAN |    2.32091e+07 |         121530 |      1.06021e+06 |
-| KXWCGAME-26JUN18CZERSA |    1.35067e+07 |          93001 | 410325           |
-| KXWCGAME-26JUN18SUIBIH |    1.27597e+07 |          76989 | 620269           |
-| KXWCGAME-26JUN17ENGCRO |    8.89631e+06 |          40439 |      1.0709e+06  |
+| match | total volume | total trades | peak 1m volume |
+|:--|--:|--:|--:|
+| Portugal vs Congo DR | 39,170,773 | 206,855 | 663,205 |
+| Iraq vs Norway | 28,519,476 | 124,192 | 1,063,864 |
+| Uzbekistan vs Colombia | 25,202,603 | 100,409 | 1,400,506 |
+| Argentina vs Algeria | 23,281,473 | 135,564 | 837,425 |
+| Ghana vs Panama | 23,209,108 | 121,530 | 1,060,209 |
+| Czechia vs South Africa | 13,506,728 | 93,001 | 410,325 |
+| Switzerland vs Bosnia and Herzegovina | 12,759,736 | 76,989 | 620,269 |
+| England vs Croatia | 8,896,310 | 40,439 | 1,070,901 |
 
-Volume was very uneven by match. That matters: any global signal can mostly be a high-volume-match artifact, so the notebook also reports by-event correlations. `KXWCGAME-26JUN17PORCOD` has orderbooks but no matching trade file in the raw folder.
+Volume was very uneven by match. That matters: any global signal can mostly be a high-volume-match artifact, so the notebook also reports by-match correlations. Trade files are now complete for the match windows; several orderbook captures are still partial because only live-polled snapshots were available.
 
 ## Three-outcome market behavior
 
@@ -39,14 +54,14 @@ Average odds sums by event:
 
 | event                  |   sum_bid |   sum_mid |   sum_ask |   buy_all_edge |   sell_all_edge |
 |:-----------------------|----------:|----------:|----------:|---------------:|----------------:|
-| KXWCGAME-26JUN16ARGDZA |    0.9617 |    0.9089 |    0.9241 |         0.0759 |         -0.0383 |
-| KXWCGAME-26JUN16IRQNOR |    0.9907 |    0.8618 |    0.8779 |         0.1221 |         -0.0093 |
-| KXWCGAME-26JUN17ENGCRO |    0.9496 |    0.5314 |    0.5482 |         0.4518 |         -0.0504 |
-| KXWCGAME-26JUN17GHAPAN |    0.9469 |    0.905  |    0.9202 |         0.0798 |         -0.0531 |
-| KXWCGAME-26JUN17PORCOD |    0.9815 |    0.9773 |    0.9925 |         0.0075 |         -0.0185 |
-| KXWCGAME-26JUN17UZBCOL |    0.9405 |    0.8588 |    0.8752 |         0.1248 |         -0.0595 |
-| KXWCGAME-26JUN18CZERSA |    0.9504 |    0.9    |    0.9152 |         0.0848 |         -0.0496 |
-| KXWCGAME-26JUN18SUIBIH |    0.9516 |    0.745  |    0.7609 |         0.2391 |         -0.0484 |
+| Argentina vs Algeria |    0.9617 |    0.9089 |    0.9241 |         0.0759 |         -0.0383 |
+| Iraq vs Norway |    0.9907 |    0.8618 |    0.8779 |         0.1221 |         -0.0093 |
+| England vs Croatia |    0.9496 |    0.5314 |    0.5482 |         0.4518 |         -0.0504 |
+| Ghana vs Panama |    0.9469 |    0.905  |    0.9202 |         0.0798 |         -0.0531 |
+| Portugal vs Congo DR |    0.9815 |    0.9773 |    0.9925 |         0.0075 |         -0.0185 |
+| Uzbekistan vs Colombia |    0.9405 |    0.8588 |    0.8752 |         0.1248 |         -0.0595 |
+| Czechia vs South Africa |    0.9504 |    0.9    |    0.9152 |         0.0848 |         -0.0496 |
+| Switzerland vs Bosnia and Herzegovina |    0.9516 |    0.745  |    0.7609 |         0.2391 |         -0.0484 |
 
 The three-outcome view treats each match as a probability simplex: one contract for each mutually exclusive outcome. For each 30-second bucket I take the latest quote for each outcome and sum across the three outcomes:
 
@@ -135,10 +150,10 @@ Feature correlations against forward YES-mid changes:
 | spread_pct               |    0.021 |    0.037 |     0.033 |     0.056 |     0.114 |
 | pressure_change_1m       |   -0.034 |   -0.009 |     0.007 |    -0.004 |     0.02  |
 | pressure_change_5m       |   -0.021 |    0.044 |     0.039 |     0.041 |     0.029 |
-| volume_1m                |    0.007 |   -0.004 |     0.014 |     0.045 |     0.091 |
-| volume_5m                |   -0.002 |   -0     |     0.021 |     0.05  |     0.117 |
-| trade_count_1m           |   -0.002 |   -0.019 |     0.017 |     0.07  |     0.136 |
-| aggressive_yes_share_1m  |   -0.004 |    0.023 |    -0.009 |     0.033 |     0.066 |
+| volume_1m                |   -0.001 |   -0.016 |     0.006 |     0.028 |    -0.025 |
+| volume_5m                |   -0.009 |   -0.013 |     0.010 |     0.025 |    -0.020 |
+| trade_count_1m           |   -0.003 |   -0.015 |     0.018 |     0.057 |     0.024 |
+| aggressive_yes_share_1m  |    0.011 |    0.061 |     0.047 |     0.087 |     0.155 |
 | time_to_close_minutes    |   -0.002 |   -0.003 |    -0.008 |    -0.011 |    -0.017 |
 | sum_mid_deviation_from_1 |   -0.001 |   -0.001 |     0.001 |    -0.022 |    -0.015 |
 
@@ -146,25 +161,25 @@ Largest absolute 5-minute correlations:
 
 |                         |   ret_5m |
 |:------------------------|---------:|
+| aggressive_yes_share_1m |    0.061 |
 | pressure_change_5m      |    0.044 |
 | excess_pressure_10      |    0.039 |
 | spread_pct              |    0.037 |
 | imbalance_10            |    0.028 |
 | imbalance_5             |    0.024 |
-| aggressive_yes_share_1m |    0.023 |
 
 By-match stability check:
 
 | event                  |   rows |   non_null_ret_5m |   imbalance_10_vs_ret_5m |   excess_pressure_10_vs_ret_5m |   volume_1m_vs_ret_5m |   lagged_mid_return_1m_vs_ret_5m |
 |:-----------------------|-------:|------------------:|-------------------------:|-------------------------------:|----------------------:|---------------------------------:|
-| KXWCGAME-26JUN16ARGDZA |   1971 |              1778 |                    0.029 |                         -0.099 |                 0.035 |                           -0.106 |
-| KXWCGAME-26JUN16IRQNOR |    924 |               751 |                    0.053 |                         -0.03  |                -0.017 |                           -0.172 |
-| KXWCGAME-26JUN17ENGCRO |    228 |                96 |                   -0.391 |                         -0.501 |                -0.047 |                           -0.287 |
-| KXWCGAME-26JUN17GHAPAN |    414 |               354 |                    0.105 |                          0.2   |                 0.015 |                           -0.117 |
-| KXWCGAME-26JUN17PORCOD |    777 |               729 |                    0.132 |                          0.064 |               nan     |                            0.127 |
-| KXWCGAME-26JUN17UZBCOL |    423 |               316 |                    0.139 |                          0.138 |                -0.052 |                           -0.115 |
-| KXWCGAME-26JUN18CZERSA |    402 |               347 |                    0.029 |                          0.161 |                -0.025 |                            0.223 |
-| KXWCGAME-26JUN18SUIBIH |    381 |               258 |                   -0.326 |                         -0.182 |                 0.022 |                            0.045 |
+| Argentina vs Algeria |   1971 |              1778 |                    0.029 |                         -0.099 |                 0.035 |                           -0.106 |
+| Iraq vs Norway |    924 |               751 |                    0.053 |                         -0.03  |                -0.017 |                           -0.172 |
+| England vs Croatia |    228 |                96 |                   -0.391 |                         -0.501 |                -0.047 |                           -0.287 |
+| Ghana vs Panama |    414 |               354 |                    0.105 |                          0.2   |                 0.015 |                           -0.117 |
+| Portugal vs Congo DR |    777 |               729 |                    0.132 |                          0.064 |                -0.097 |                            0.127 |
+| Uzbekistan vs Colombia |    423 |               316 |                    0.139 |                          0.138 |                -0.052 |                           -0.115 |
+| Czechia vs South Africa |    402 |               347 |                    0.029 |                          0.161 |                -0.025 |                            0.223 |
+| Switzerland vs Bosnia and Herzegovina |    381 |               258 |                   -0.326 |                         -0.182 |                 0.022 |                            0.045 |
 
 ## Read so far
 
@@ -200,11 +215,11 @@ To verify exploitable latency, we would need:
 - A clear executable benchmark: first public event timestamp, first quote move, first trade move, and whether a realistic order could be placed/filled after fees and spread.
 - Multiple matches/events. One goal response is anecdote; latency needs a distribution.
 
-`KXWCGAME-26JUN17PORCOD` still has no matching raw trade file, so that overlay is useful for orderbook-price context only. The other sourced matches have trade data and can now be used for price + volume + event comparisons.
+Portugal vs Congo DR now has a complete refetched trade file, so it can be used for price + volume + event comparisons too.
 
 ## Figures
 
 - `reports/figures/kalshi_worldcup/three_outcome_example.png`
 - `reports/figures/kalshi_worldcup/imbalance_vs_ret5m.png`
-- `reports/figures/kalshi_worldcup/narration_overlay_KXWCGAME-26JUN17PORCOD.png`
+- `reports/figures/kalshi_worldcup/narration_overlay_Portugal vs Congo DR.png`
 - `reports/figures/kalshi_worldcup/volume_*.png`

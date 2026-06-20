@@ -379,8 +379,11 @@ Discovered implementation todos:
 - [x] Document exact data needed before claiming exploitable latency.
 - [x] Add GitHub Pages-ready docs copy of the blog post at `docs/kalshi_worldcup_eda_blog.md`.
 - [x] Add GitHub Pages deploy workflow at `.github/workflows/pages.yml`.
+- [x] Check for newly collected raw files; no new orderbook/trade captures beyond the existing June 16-18 set were present before refetch.
+- [x] Refetch complete match-window trade files for all 8 matches from Kalshi historical trades API, including missing `KXWCGAME-26JUN17PORCOD`.
+- [x] Add match-name/result/data-coverage table to the blog before feature evidence.
+- [x] Display matches as human-readable names in the blog/notebook tables instead of event tickers.
 - [ ] Compare event markers against trade volume spikes for matches with both narration and trades.
-- [ ] Fetch missing trade prints for `KXWCGAME-26JUN17PORCOD` if trade-side analysis needs complete event coverage.
 - [ ] Decide whether approximate minute-derived UTC timestamps are good enough, or add separate `kickoff_ts` + `minute` parsing instead of hardcoded event `ts`.
 
 ## Next Actions
